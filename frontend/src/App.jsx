@@ -41,11 +41,10 @@ function App() {
 
   const toast = useToast();
 
-  // READ: Fetch all products
+  // READ: Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
-
       const response = await axios.get(`${API_URL}/products`);
       setProducts(response.data.data || []);
     } catch (error) {
@@ -53,7 +52,7 @@ function App() {
         title: "Failed to load products",
         description:
           error.response?.data?.message ||
-          "Check your backend connection.",
+          "Check whether your backend is running.",
         status: "error",
         duration: 4000,
         isClosable: true,
@@ -67,7 +66,7 @@ function App() {
     fetchProducts();
   }, []);
 
-  // Handle form changes
+  // Handle input changes
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -77,7 +76,7 @@ function App() {
     }));
   };
 
-  // CREATE or UPDATE product
+  // CREATE or UPDATE
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -137,7 +136,6 @@ function App() {
 
       setForm(initialForm);
       setEditingId(null);
-
       await fetchProducts();
     } catch (error) {
       toast({
@@ -155,7 +153,7 @@ function App() {
     }
   };
 
-  // Load product details into the form
+  // EDIT: Populate the form
   const handleEdit = (product) => {
     setEditingId(product._id);
 
@@ -165,7 +163,7 @@ function App() {
       image: product.image || "",
     });
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   };
 
   // Cancel editing
@@ -174,11 +172,9 @@ function App() {
     setForm(initialForm);
   };
 
-  // DELETE product
+  // DELETE
   const handleDelete = async (id) => {
-    if (
-      !window.confirm("Are you sure you want to delete this product?")
-    ) {
+    if (!window.confirm("Are you sure you want to delete this product?")) {
       return;
     }
 
@@ -209,7 +205,7 @@ function App() {
     }
   };
 
-  // SEARCH and SORT products
+  // SEARCH and SORT
   const filteredProducts = products
     .filter((product) =>
       (product.name || "")
@@ -263,83 +259,7 @@ function App() {
           </Button>
         </Flex>
 
-        {/* Add / Edit Form */}
-        <Box
-          bg="white"
-          p={{ base: 5, md: 7 }}
-          borderRadius="xl"
-          boxShadow="md"
-          mb={10}
-        >
-          <Heading size="md" mb={6}>
-            {editingId ? "Edit product" : "Add a product"}
-          </Heading>
-
-          <form onSubmit={handleSubmit}>
-            <VStack spacing={4} align="stretch">
-              <FormControl isRequired>
-                <FormLabel>Product Name</FormLabel>
-
-                <Input
-                  name="name"
-                  placeholder="Enter product name"
-                  value={form.name}
-                  onChange={handleChange}
-                />
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Price (₹)</FormLabel>
-
-                <Input
-                  name="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter product price"
-                  value={form.price}
-                  onChange={handleChange}
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Image URL</FormLabel>
-
-                <Input
-                  name="image"
-                  type="url"
-                  placeholder="https://example.com/product.jpg"
-                  value={form.image}
-                  onChange={handleChange}
-                />
-              </FormControl>
-
-              <Flex gap={3} wrap="wrap" pt={2}>
-                <Button
-                  type="submit"
-                  colorScheme="teal"
-                  isLoading={saving}
-                  loadingText={editingId ? "Updating..." : "Adding..."}
-                >
-                  {editingId ? "Update product" : "Add product"}
-                </Button>
-
-                {editingId && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    isDisabled={saving}
-                  >
-                    Cancel Edit
-                  </Button>
-                )}
-              </Flex>
-            </VStack>
-          </form>
-        </Box>
-
-        {/* Products Header */}
+        {/* Products heading, search and sorting */}
         <Flex
           justify="space-between"
           align={{ base: "stretch", md: "center" }}
@@ -349,13 +269,11 @@ function App() {
         >
           <Box>
             <Heading size="lg">Our Products</Heading>
-
             <Text color="gray.600" mt={1}>
               Showing {filteredProducts.length} of {products.length} products
             </Text>
           </Box>
 
-          {/* Search and Sort */}
           <Flex
             gap={3}
             direction={{ base: "column", sm: "row" }}
@@ -384,7 +302,7 @@ function App() {
           </Flex>
         </Flex>
 
-        {/* Product List */}
+        {/* Product cards */}
         {loading ? (
           <Flex justify="center" py={12}>
             <Spinner size="xl" color="teal.500" />
@@ -404,7 +322,7 @@ function App() {
             <Text color="gray.500">
               {search
                 ? "Try another search term."
-                : "Add your first product using the form above."}
+                : "Add your first product using the form below."}
             </Text>
 
             {search && (
@@ -475,6 +393,91 @@ function App() {
             ))}
           </SimpleGrid>
         )}
+
+        {/* Add / Edit form at the bottom */}
+        <Box
+          id="product-form"
+          bg="white"
+          p={{ base: 5, md: 7 }}
+          borderRadius="xl"
+          boxShadow="md"
+          mt={12}
+        >
+          <Heading size="md" mb={2}>
+            {editingId ? "Edit product" : "Add a product"}
+          </Heading>
+
+          <Text color="gray.600" mb={6}>
+            {editingId
+              ? "Update the product details below."
+              : "Enter the details to add a new product to your store."}
+          </Text>
+
+          <form onSubmit={handleSubmit}>
+            <VStack spacing={4} align="stretch">
+              <FormControl isRequired>
+                <FormLabel>Product Name</FormLabel>
+                <Input
+                  name="name"
+                  placeholder="Enter product name"
+                  value={form.name}
+                  onChange={handleChange}
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Price (₹)</FormLabel>
+                <Input
+                  name="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter product price"
+                  value={form.price}
+                  onChange={handleChange}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Image URL</FormLabel>
+                <Input
+                  name="image"
+                  type="url"
+                  placeholder="Paste a direct image URL"
+                  value={form.image}
+                  onChange={handleChange}
+                />
+              </FormControl>
+
+              <Flex gap={3} wrap="wrap" pt={2}>
+                <Button
+                  type="submit"
+                  colorScheme="teal"
+                  isLoading={saving}
+                  loadingText={editingId ? "Updating..." : "Adding..."}
+                >
+                  {editingId ? "Update product" : "Add product"}
+                </Button>
+
+                {editingId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    isDisabled={saving}
+                  >
+                    Cancel Edit
+                  </Button>
+                )}
+              </Flex>
+            </VStack>
+          </form>
+        </Box>
+
+        {/* Footer */}
+        <Text textAlign="center" color="gray.500" fontSize="sm" mt={10}>
+          MERN Product Store · React · Express · MongoDB
+        </Text>
       </Container>
     </Box>
   );

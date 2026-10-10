@@ -159,10 +159,7 @@ router.put("/:id", validateProduct, async (req, res) => {
         image: req.body.image?.trim() || "https://placehold.co/400x300",
         description: req.body.description?.trim() || "",
       },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { returnDocument: "after", runValidators: true }
     );
 
     if (!product) {

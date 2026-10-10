@@ -11,6 +11,7 @@ import {
   Heading,
   Image,
   Input,
+  Select,
   SimpleGrid,
   Spinner,
   Text,
@@ -31,12 +32,16 @@ function App() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState("default");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const toast = useToast();
 
-  // Fetch all products
+  // READ: Fetch all products
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -48,7 +53,7 @@ function App() {
         title: "Failed to load products",
         description:
           error.response?.data?.message ||
-          "Please check that the backend is running on port 5001.",
+          "Check your backend connection.",
         status: "error",
         duration: 4000,
         isClosable: true,
@@ -62,23 +67,23 @@ function App() {
     fetchProducts();
   }, []);
 
-  // Update form fields
+  // Handle form changes
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((previousForm) => ({
-      ...previousForm,
+    setForm((previous) => ({
+      ...previous,
       [name]: value,
     }));
   };
 
-  // Add a new product OR update an existing product
+  // CREATE or UPDATE product
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!form.name.trim() || form.price === "") {
       toast({
-        title: "Please enter the product name and price.",
+        title: "Product name and price are required",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -86,9 +91,11 @@ function App() {
       return;
     }
 
-    if (!Number.isFinite(Number(form.price)) || Number(form.price) < 0) {
+    const price = Number(form.price);
+
+    if (!Number.isFinite(price) || price < 0) {
       toast({
-        title: "Please enter a valid price.",
+        title: "Enter a valid, non-negative price",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -98,7 +105,7 @@ function App() {
 
     const productData = {
       name: form.name.trim(),
-      price: Number(form.price),
+      price,
       image: form.image.trim() || "https://placehold.co/400x300",
     };
 
@@ -106,24 +113,22 @@ function App() {
       setSaving(true);
 
       if (editingId) {
-        // UPDATE existing product
         await axios.put(
           `${API_URL}/products/${editingId}`,
           productData
         );
 
         toast({
-          title: "Product updated successfully!",
+          title: "Product updated successfully",
           status: "success",
           duration: 3000,
           isClosable: true,
         });
       } else {
-        // CREATE new product
         await axios.post(`${API_URL}/products`, productData);
 
         toast({
-          title: "Product added successfully!",
+          title: "Product added successfully",
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -150,7 +155,7 @@ function App() {
     }
   };
 
-  // Load selected product into the form for editing
+  // Load product details into the form
   const handleEdit = (product) => {
     setEditingId(product._id);
 
@@ -169,13 +174,13 @@ function App() {
     setForm(initialForm);
   };
 
-  // Delete a product
+  // DELETE product
   const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this product?"
-    );
-
-    if (!confirmed) return;
+    if (
+      !window.confirm("Are you sure you want to delete this product?")
+    ) {
+      return;
+    }
 
     try {
       await axios.delete(`${API_URL}/products/${id}`);
@@ -185,7 +190,7 @@ function App() {
       }
 
       toast({
-        title: "Product deleted successfully!",
+        title: "Product deleted successfully",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -204,6 +209,29 @@ function App() {
     }
   };
 
+  // SEARCH and SORT products
+  const filteredProducts = products
+    .filter((product) =>
+      (product.name || "")
+        .toLowerCase()
+        .includes(search.trim().toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortOrder === "price-low") {
+        return Number(a.price) - Number(b.price);
+      }
+
+      if (sortOrder === "price-high") {
+        return Number(b.price) - Number(a.price);
+      }
+
+      if (sortOrder === "name") {
+        return (a.name || "").localeCompare(b.name || "");
+      }
+
+      return 0;
+    });
+
   return (
     <Box minH="100vh" bg="gray.50" py={10}>
       <Container maxW="container.xl">
@@ -216,11 +244,11 @@ function App() {
           mb={8}
         >
           <Box>
-            <Heading color="teal.600" size="xl">
+            <Heading size="xl" color="teal.600">
               MERN Product Store
             </Heading>
 
-            <Text mt={2} color="gray.600">
+            <Text color="gray.600" mt={2}>
               Manage your products with React and MongoDB.
             </Text>
           </Box>
@@ -311,27 +339,91 @@ function App() {
           </form>
         </Box>
 
-        {/* Product List */}
-        <Heading size="lg" mb={6}>
-          Our Products ({products.length})
-        </Heading>
+        {/* Products Header */}
+        <Flex
+          justify="space-between"
+          align={{ base: "stretch", md: "center" }}
+          direction={{ base: "column", md: "row" }}
+          gap={4}
+          mb={6}
+        >
+          <Box>
+            <Heading size="lg">Our Products</Heading>
 
+            <Text color="gray.600" mt={1}>
+              Showing {filteredProducts.length} of {products.length} products
+            </Text>
+          </Box>
+
+          {/* Search and Sort */}
+          <Flex
+            gap={3}
+            direction={{ base: "column", sm: "row" }}
+            minW={{ base: "100%", md: "430px" }}
+          >
+            <Input
+              placeholder="Search products..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              bg="white"
+              aria-label="Search products by name"
+            />
+
+            <Select
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value)}
+              bg="white"
+              minW="190px"
+              aria-label="Sort products"
+            >
+              <option value="default">Default order</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="name">Name: A to Z</option>
+            </Select>
+          </Flex>
+        </Flex>
+
+        {/* Product List */}
         {loading ? (
           <Flex justify="center" py={12}>
             <Spinner size="xl" color="teal.500" />
           </Flex>
-        ) : products.length === 0 ? (
-          <Box bg="white" p={10} borderRadius="xl" textAlign="center">
+        ) : filteredProducts.length === 0 ? (
+          <Box
+            bg="white"
+            p={10}
+            borderRadius="xl"
+            textAlign="center"
+            boxShadow="sm"
+          >
+            <Heading size="md" mb={2}>
+              {search ? "No matching products" : "No products yet"}
+            </Heading>
+
             <Text color="gray.500">
-              No products found. Add your first product above.
+              {search
+                ? "Try another search term."
+                : "Add your first product using the form above."}
             </Text>
+
+            {search && (
+              <Button
+                mt={4}
+                colorScheme="teal"
+                variant="outline"
+                onClick={() => setSearch("")}
+              >
+                Clear Search
+              </Button>
+            )}
           </Box>
         ) : (
           <SimpleGrid
             columns={{ base: 1, sm: 2, lg: 3, xl: 4 }}
             spacing={6}
           >
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <Box
                 key={product._id}
                 bg="white"
